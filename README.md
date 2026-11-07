@@ -1,18 +1,18 @@
 # tenzro-sdk-kotlin
 
-Minimal Kotlin/JVM client for a [Tenzro](https://tenzro.com) node's JSON-RPC. Coroutines (`suspend`), kotlinx.serialization, OkHttp. Usable from Java through a blocking facade.
+The official Tenzro SDK for Kotlin and Java: a coroutine-based JSON-RPC client for the [Tenzro Network](https://tenzro.com) (chain id 13380, `0x3444`), usable from Java through a blocking facade.
 
-Status: 0.1.0, read-only. Not published to Maven Central.
+## Install
 
-## Install (JitPack / git, until Maven Central publishing)
+Not yet on Maven Central — install via JitPack or a git dependency until it is:
 
 ```kotlin
 repositories { maven("https://jitpack.io") }
 dependencies { implementation("com.github.tenzro:tenzro-sdk-kotlin:main-SNAPSHOT") }
 ```
-Pin a commit hash or tag instead of `main-SNAPSHOT` for reproducible builds. (JitPack resolution has not been exercised yet; the library builds and `publishToMavenLocal` is configured, so `./gradlew publishToMavenLocal` then `mavenLocal()` with `network.tenzro:tenzro-sdk-kotlin:0.1.0` also works.)
+Pin a commit hash or tag instead of `main-SNAPSHOT` for reproducible builds. `./gradlew publishToMavenLocal` plus `mavenLocal()` with `network.tenzro:tenzro-sdk-kotlin:0.1.0` also works.
 
-## Kotlin
+## Quickstart (Kotlin)
 
 ```kotlin
 TenzroClient("http://127.0.0.1:28545", chainId = 13380).use { c ->
@@ -22,9 +22,13 @@ TenzroClient("http://127.0.0.1:28545", chainId = 13380).use { c ->
 ```
 See `examples/kotlin/Basic.kt`.
 
-## Java
+## Quickstart (Java)
 
-Choice: a separate blocking facade, `TenzroClientBlocking` (runs each call with `runBlocking`), rather than `@JvmStatic` wrappers, because suspend functions are not callable from Java and the facade keeps one obvious entry point. Do not call it on an Android main thread. See `examples/java/BasicJava.java`.
+```java
+TenzroClientBlocking c = new TenzroClientBlocking("http://127.0.0.1:28545", 13380);
+System.out.println(c.getStatus());
+```
+`TenzroClientBlocking` runs each call with `runBlocking` rather than `@JvmStatic` wrappers, since suspend functions aren't callable from Java directly — don't call it on an Android main thread. See `examples/java/BasicJava.java`.
 
 ## Methods
 
@@ -40,22 +44,18 @@ Choice: a separate blocking facade, `TenzroClientBlocking` (runs each call with 
 | `isConnected`, `verifyChainId` | helpers on `eth_chainId` |
 | `rpc(method, params)` | any method, string params only |
 
-All typed methods are in the node's no-auth `OPEN_METHODS`. Naming follows `tenzro-ts-sdk`.
+Signing is deliberately external: `Signer` is an interface only (naming Android Keystore/StrongBox and Credential Manager passkeys in its docs), with no implementation that holds a raw key.
 
-## Signing
+## Android, JVM, and Kotlin Multiplatform
 
-`Signer` is an interface only (KDoc mentions Android Keystore/StrongBox and Credential Manager passkeys). There is no implementation: none could be tested without an Android device. No transaction building/signing exists yet.
+This ships as a plain JVM module, which also runs on Android (OkHttp, kotlinx.serialization and coroutines all support it; the only non-Android-trivial type is `BigInteger`). A move to Kotlin Multiplatform makes sense once iOS/JS/native targets are wanted — it would swap OkHttp for ktor-client and `BigInteger` for a multiplatform bignum — and is a small migration given the client is only HTTP + JSON, but isn't needed yet.
 
-## Android vs. JVM vs. Kotlin Multiplatform
+## Compatibility
 
-Recommendation (reasoned, not built): keep this JVM module, which runs on Android too (OkHttp, kotlinx.serialization and coroutines all support Android; the library has no `java.*` APIs beyond `BigInteger`). Android compatibility has not been tested here. Move to KMP only if iOS/JS/native is wanted: OkHttp is JVM/Android-only, so a KMP `commonMain` would swap in ktor-client (OkHttp engine on JVM/Android, Darwin on iOS), and `BigInteger` would need a multiplatform replacement (e.g. ionspin bignum). Since the client is only HTTP + JSON, that migration is small; the multiplatform path was not built or tested.
+JUnit 5 tests pass against a live Tenzro node (chain id, status, balance/nonce/gas-price reads, typed errors, the Java facade). Android itself hasn't been exercised on a device; the signer implementation and a Compose sample both need one to build correctly. Not yet on Maven Central.
 
-## Tests
+## Links
 
-`./gradlew test` always runs MockWebServer tests. Set `TENZRO_RPC_URL` (and optionally `TENZRO_CHAIN_ID`) to also run live-node tests; they are skipped when unset.
-
-## Not included
-
-Compose sample (no Android build environment to verify it), signer implementations, transaction submission, Maven Central publishing.
+[tenzro-network](https://github.com/tenzro/tenzro-network) (the protocol and node) and the other official SDKs in the [tenzro](https://github.com/tenzro) organization (TypeScript, Rust, Python, Go, C/C++, Swift, .NET).
 
 License: Apache-2.0.
